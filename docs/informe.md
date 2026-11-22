@@ -96,9 +96,20 @@ Para garantizar la trazabilidad, el archivo `data/manifiesto.csv` registra el or
 
 ### 3.1 Herramienta y modelo
 
-El modelo se construyó con **Azure Custom Vision**, en la región East US y con el nivel gratuito F0, reutilizando la infraestructura creada en la Actividad 4 (grupo de recursos `ComputerVisionImages`, recurso de entrenamiento `AnimalIdentificationJGR` y recurso de predicción `AnimalIdentificationJGR-Prediction`). Se creó el proyecto `DanosVehiculares` de tipo *Classification – Multiclass*, en el que cada imagen recibe una sola etiqueta (`danado` o `sin_dano`), con el dominio *General [A2]*. Custom Vision aplica *transfer learning*: parte de una red convolucional preentrenada con millones de imágenes y ajusta sus capas finales con las imágenes del proyecto.
+El modelo se construyó con **Azure Custom Vision**, en la región East US y con el nivel gratuito F0, reutilizando la infraestructura creada en la Actividad 4 (grupo de recursos `ComputerVisionImages`, recurso de entrenamiento `AnimalIdentificationJGR` y recurso de predicción `AnimalIdentificationJGR-Prediction`). La figura 4 muestra el grupo de recursos con los dos recursos de Custom Vision utilizados, y la figura 5, el detalle del recurso de entrenamiento: tipo de API *CustomVision.Training*, región East US y plan gratuito. Aunque los recursos provienen de una actividad anterior, sobre ellos se creó un proyecto completamente nuevo, dedicado a este problema, de modo que el modelo, sus iteraciones y su endpoint son propios de este trabajo.
 
-Para que el proceso fuera reproducible, todo el flujo se automatizó con la **API REST de entrenamiento v3.3** en el script `02_custom_vision.py`, que crea el proyecto y las etiquetas, carga las imágenes en lotes de 64, lanza el entrenamiento, consulta las métricas y publica cada iteración.
+![Grupo de recursos en Azure](resultados/figuras_azure/azure_grupo_recursos.png){: .screen}
+<p class="caption">Figura 4. Portal de Azure: grupo de recursos <code>ComputerVisionImages</code> con el recurso de entrenamiento y el de predicción de Custom Vision.</p>
+
+![Recurso de entrenamiento](resultados/figuras_azure/azure_recurso_entrenamiento.png){: .wide}
+<p class="caption">Figura 5. Información esencial del recurso de entrenamiento <code>AnimalIdentificationJGR</code> (el identificador de la suscripción se ocultó).</p>
+
+Se creó el proyecto `DanosVehiculares` de tipo *Classification – Multiclass*, en el que cada imagen recibe una sola etiqueta (`danado` o `sin_dano`), con el dominio *General [A2]*. Custom Vision aplica *transfer learning*: parte de una red convolucional preentrenada con millones de imágenes y ajusta sus capas finales con las imágenes del proyecto.
+
+Para que el proceso fuera reproducible, todo el flujo se automatizó con la **API REST de entrenamiento v3.3** en el script `02_custom_vision.py`, que crea el proyecto y las etiquetas, carga las imágenes en lotes de 64, lanza el entrenamiento, consulta las métricas y publica cada iteración. La figura 6 muestra el resultado de la carga en el portal de Custom Vision: las 1.817 imágenes de entrenamiento quedaron etiquetadas como `danado` (898) y `sin_dano` (919).
+
+![Imágenes de entrenamiento en Custom Vision](resultados/figuras_azure/cv_imagenes_entrenamiento.png){: .wide}
+<p class="caption">Figura 6. Proyecto <code>DanosVehiculares</code> en el portal de Custom Vision, con las imágenes de entrenamiento y el número de imágenes por etiqueta.</p>
 
 ### 3.2 Experimentos y ajustes
 
@@ -112,9 +123,14 @@ Se diseñaron tres iteraciones, cada una orientada a responder una pregunta conc
 
 Como ajuste adicional se estudió el **umbral de decisión**. Custom Vision clasifica por defecto con un umbral de 0,5, pero ese valor no siempre es el más adecuado para el negocio. Con las probabilidades del conjunto de prueba se calcularon tres alternativas: el umbral que maximiza el índice de Youden (J = TPR − FPR) sobre la curva ROC, el que maximiza el F1 y el mayor umbral que garantiza un recall de al menos 95 %.
 
+La figura 7 muestra la pestaña *Performance* del portal al finalizar el entrenamiento. En el panel izquierdo aparecen las tres iteraciones, todas publicadas; la iteración 3 indica el entrenamiento avanzado con presupuesto de una hora y el nombre con el que quedó publicada (`iter3-advanced`), que es el que consume la aplicación.
+
+![Rendimiento en Custom Vision](resultados/figuras_azure/cv_performance_iter3.png){: .screen}
+<p class="caption">Figura 7. Pestaña <i>Performance</i> de Custom Vision: las tres iteraciones publicadas y las métricas internas de la iteración 3.</p>
+
 ### 3.3 Despliegue en la nube
 
-La solución quedó desplegada en dos capas, como se resume en la figura 4.
+La solución quedó desplegada en dos capas, como se resume en la figura 8.
 
 **Modelo como servicio.** Cada iteración se publicó en el recurso de predicción con un nombre propio (`publishName`), de modo que cada una quedó disponible como un endpoint REST independiente. La aplicación consume la iteración final mediante una petición como la siguiente:
 
@@ -129,21 +145,28 @@ Respuesta: {"predictions":[{"tagName":"danado","probability":0.97},{"tagName":"s
 **Aplicación web.** La interfaz se publicó en **Streamlit Community Cloud** a partir del repositorio del proyecto en GitHub. Las credenciales del endpoint no se guardan en el código: se configuran como *secrets* de la plataforma y la aplicación las lee en tiempo de ejecución. De esta manera, cualquier persona con el enlace puede usar el sistema desde el navegador, sin instalar nada.
 
 ![Arquitectura](resultados/figuras_app/arquitectura.png){: .wide}
-<p class="caption">Figura 4. Arquitectura de la solución: construcción del modelo y operación en la nube.</p>
+<p class="caption">Figura 8. Arquitectura de la solución: construcción del modelo y operación en la nube.</p>
 
 ### 3.4 Aplicación web
 
 La aplicación, implementada en `app.py`, está organizada en tres pestañas y una barra lateral.
 
-En la pestaña **Analizar fotos del siniestro**, el usuario carga una o varias fotos, o un archivo `.zip`. Para cada imagen la aplicación muestra la foto, la probabilidad de daño y una decisión con código de colores: *Daño detectado* (rojo), *Sin daño visible* (verde) o *Zona de duda, enviar a perito* (amarillo). En la parte superior resume cuántas fotos quedaron en cada categoría, y al final permite descargar los resultados en CSV (figura 5).
+En la pestaña **Analizar fotos del siniestro**, el usuario carga una o varias fotos, o un archivo `.zip`. Para cada imagen la aplicación muestra la foto, la probabilidad de daño y una decisión con código de colores: *Daño detectado* (rojo), *Sin daño visible* (verde) o *Zona de duda, enviar a perito* (amarillo). En la parte superior resume cuántas fotos quedaron en cada categoría, y al final permite descargar los resultados en CSV (figura 9).
 
-![Pestaña de análisis de fotos](resultados/figuras_app/app_analizar_recorte.png){: .screen}
-<p class="caption">Figura 5. Análisis de seis fotos del conjunto de prueba con la iteración final. Dos quedan en la zona de duda y se remiten a un perito.</p>
+Las capturas de esta sección se tomaron sobre la aplicación desplegada en Streamlit Community Cloud (https://peritia-evaluador-danios.streamlit.app/), conectada al endpoint de Azure con la iteración `iter3-advanced`. En la parte superior derecha se observan los controles propios de la plataforma de despliegue.
 
-En la pestaña **Evaluar un dataset etiquetado**, el usuario sube un `.zip` con las carpetas `danado/` y `sin_dano/`. La aplicación envía cada imagen al endpoint y calcula en el momento la exactitud, la precision, el recall, el F1, la especificidad y el AUC, además de dibujar la matriz de confusión, las curvas ROC y precision-recall y el barrido de umbral (figura 6). Esta funcionalidad permite que el área de negocio valide el modelo con sus propias fotos antes de adoptarlo.
+![Pestaña de análisis de fotos](resultados/figuras_app/nube_analizar_recorte.png){: .screen}
+<p class="caption">Figura 9. Aplicación desplegada: análisis de seis fotos del conjunto de prueba con umbral 0,42 y margen ±0,10. Dos fotos quedan en la zona de duda y se remiten a un perito.</p>
 
-![Pestaña de evaluación de un dataset](resultados/figuras_app/app_evaluar_recorte.png){: .screen}
-<p class="caption">Figura 6. Evaluación de un conjunto etiquetado de 30 imágenes desde la aplicación.</p>
+Para ilustrar el efecto de los parámetros de la barra lateral, se repitió el análisis con el margen de la zona de duda en 0, es decir, dejando que el modelo decida todos los casos (figura 10). En ese escenario, el vehículo dañado visto a distancia (P = 32,4 %) se clasifica como *sin daño visible*, un falso negativo, y la vista trasera con reflejos (P = 50,3 %) como *daño detectado*, un falso positivo. Con el margen de ±0,10 ambos casos se habrían enviado a un perito, lo que muestra en la práctica el valor de la zona de duda.
+
+![Sin zona de duda](resultados/figuras_app/nube_sin_zona_duda_recorte.png){: .screen}
+<p class="caption">Figura 10. Las mismas seis fotos con el margen de la zona de duda en 0: las dos fotos inciertas se convierten en un falso negativo y un falso positivo.</p>
+
+En la pestaña **Evaluar un dataset etiquetado**, el usuario sube un `.zip` con las carpetas `danado/` y `sin_dano/`. La aplicación envía cada imagen al endpoint y calcula en el momento la exactitud, la precision, el recall, el F1, la especificidad y el AUC, además de dibujar la matriz de confusión, las curvas ROC y precision-recall y el barrido de umbral (figura 11). Esta funcionalidad permite que el área de negocio valide el modelo con sus propias fotos antes de adoptarlo.
+
+![Pestaña de evaluación de un dataset](resultados/figuras_app/nube_evaluar_recorte.png){: .screen}
+<p class="caption">Figura 11. Aplicación desplegada: evaluación de un conjunto etiquetado de 30 imágenes, con métricas, matriz de confusión y curvas calculadas en el momento.</p>
 
 La pestaña **Acerca del modelo** presenta el contexto del problema, el resumen del dataset y las métricas de la evaluación independiente. En la barra lateral se pueden ajustar el umbral de decisión, que por defecto es el de Youden, y el margen de la zona de duda, de modo que el área de siniestros calibre el equilibrio entre automatización y control humano.
 
@@ -178,13 +201,13 @@ Con el umbral por defecto de 0,5 y n = 459, se obtuvieron los siguientes resulta
 El F1 macro fue de 0,948, 0,954 y 0,954, respectivamente. El endpoint del modelo final respondió con una latencia mediana de 561 ms y un percentil 95 de 1.851 ms por imagen, medidos desde Colombia con el nivel gratuito.
 
 ![Curva ROC](resultados/figuras_evaluacion/roc.png)
-<p class="caption">Figura 7. Curvas ROC de las tres iteraciones sobre el conjunto de prueba.</p>
+<p class="caption">Figura 12. Curvas ROC de las tres iteraciones sobre el conjunto de prueba.</p>
 
 ![Curva PR](resultados/figuras_evaluacion/precision_recall.png)
-<p class="caption">Figura 8. Curvas precision-recall de las tres iteraciones.</p>
+<p class="caption">Figura 13. Curvas precision-recall de las tres iteraciones.</p>
 
 ![Matriz de confusión](resultados/figuras_evaluacion/matriz_confusion.png)
-<p class="caption">Figura 9. Matriz de confusión del modelo final con umbral 0,5.</p>
+<p class="caption">Figura 14. Matriz de confusión del modelo final con umbral 0,5.</p>
 
 ### 4.3 Comparación estadística entre iteraciones
 
@@ -206,10 +229,10 @@ Ninguno de los p-valores es inferior a 0,05. Las tres iteraciones aciertan y fal
 Se adoptó el umbral de Youden (0,42) como valor por defecto de la aplicación. Frente al umbral de 0,5, permite detectar cinco daños adicionales (los falsos negativos bajan de 12 a 7) a cambio de dos falsos positivos más (de 9 a 11). En el contexto de los siniestros este intercambio resulta conveniente, porque un falso positivo solo implica que un perito revise un caso, mientras que un falso negativo puede llevar a cerrar de forma equivocada una reclamación con daño real. Debe tenerse en cuenta que estos umbrales se calcularon sobre el mismo conjunto de prueba, por lo que su desempeño es ligeramente optimista; en un piloto deberían recalibrarse con un conjunto de validación propio de la aseguradora.
 
 ![Barrido de umbral](resultados/figuras_evaluacion/barrido_umbral.png)
-<p class="caption">Figura 10. Precision, recall y F1 del modelo final en función del umbral.</p>
+<p class="caption">Figura 15. Precision, recall y F1 del modelo final en función del umbral.</p>
 
 ![Histograma](resultados/figuras_evaluacion/histograma_probabilidades.png)
-<p class="caption">Figura 11. Distribución de la probabilidad de daño asignada por el modelo final, según la clase real.</p>
+<p class="caption">Figura 16. Distribución de la probabilidad de daño asignada por el modelo final, según la clase real.</p>
 
 ## 5. Análisis de resultados
 
@@ -223,7 +246,7 @@ El entrenamiento avanzado (60 minutos frente a 9) no modificó la exactitud con 
 
 ### 5.3 Interpretación de la curva ROC
 
-Un AUC de 0,991 significa que, si se toman al azar una foto con daño y una sin daño, el modelo asigna una probabilidad de daño mayor a la primera en el 99,1 % de los casos. El intervalo de confianza (0,985–0,997) está muy por encima de 0,5, que corresponde a un clasificador aleatorio. Las curvas de las tres iteraciones prácticamente se superponen (figura 7), lo que coincide con el resultado de McNemar. Por su parte, el histograma de la figura 11 muestra que las probabilidades se concentran cerca de 0 y de 1, es decir, que el modelo suele ser muy seguro en sus respuestas.
+Un AUC de 0,991 significa que, si se toman al azar una foto con daño y una sin daño, el modelo asigna una probabilidad de daño mayor a la primera en el 99,1 % de los casos. El intervalo de confianza (0,985–0,997) está muy por encima de 0,5, que corresponde a un clasificador aleatorio. Las curvas de las tres iteraciones prácticamente se superponen (figura 12), lo que coincide con el resultado de McNemar. Por su parte, el histograma de la figura 16 muestra que las probabilidades se concentran cerca de 0 y de 1, es decir, que el modelo suele ser muy seguro en sus respuestas.
 
 ### 5.4 Costo de los errores en el contexto de seguros
 
@@ -231,12 +254,12 @@ Los dos tipos de error no tienen el mismo costo. Un **falso positivo** (un vehí
 
 ### 5.5 Patrones de error
 
-La figura 12 muestra los errores con mayor confianza del modelo final. Entre los **falsos positivos** aparecen vehículos sucios o mojados, charcos y manchas en el pavimento, un mecánico trabajando junto a un auto y vehículos fotografiados en talleres o patios. Todo indica que el modelo aprendió **atajos de contexto**: en el dataset, las fotos con daño suelen tomarse precisamente en esos entornos. Entre los **falsos negativos** predominan daños frontales vistos a distancia en una toma completa del vehículo, daños sobre carrocerías oscuras con poco contraste y daños parciales de lámina. Como en el dataset los daños aparecen casi siempre en primer plano, el modelo tiende a asociar la vista completa del vehículo con la ausencia de daño, lo que confirma el **sesgo de encuadre** identificado en el análisis exploratorio.
+La figura 17 muestra los errores con mayor confianza del modelo final. Entre los **falsos positivos** aparecen vehículos sucios o mojados, charcos y manchas en el pavimento, un mecánico trabajando junto a un auto y vehículos fotografiados en talleres o patios. Todo indica que el modelo aprendió **atajos de contexto**: en el dataset, las fotos con daño suelen tomarse precisamente en esos entornos. Entre los **falsos negativos** predominan daños frontales vistos a distancia en una toma completa del vehículo, daños sobre carrocerías oscuras con poco contraste y daños parciales de lámina. Como en el dataset los daños aparecen casi siempre en primer plano, el modelo tiende a asociar la vista completa del vehículo con la ausencia de daño, lo que confirma el **sesgo de encuadre** identificado en el análisis exploratorio.
 
 Conviene destacar que 12 de los 21 errores cometidos con umbral 0,5 tienen una probabilidad mayor que 0,8 o menor que 0,2; es decir, el modelo también se equivoca con seguridad, lo que limita lo que puede lograrse solo con la zona de duda.
 
 ![Errores](resultados/figuras_evaluacion/errores.png){: .wide}
-<p class="caption">Figura 12. Falsos positivos y falsos negativos con mayor confianza del modelo final.</p>
+<p class="caption">Figura 17. Falsos positivos y falsos negativos con mayor confianza del modelo final.</p>
 
 ### 5.6 Zona de duda
 

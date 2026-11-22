@@ -1,69 +1,157 @@
-# Guion del video (máximo 10 minutos, objetivo 9:00)
+# Guion del video de sustentación — PeritIA
 
-Formato sugerido: grabar la pantalla con OBS o Clipchamp, con la cámara en una esquina.
-- Resolución 1080p, micrófono con poco eco.
-- Antes de grabar: cerrar pestañas con claves y **no mostrar el archivo `.env`** ni la página *Keys and Endpoint*.
-- Subir a YouTube como "No listado" y pegar el enlace en la portada del informe.
+Duración objetivo: **9 minutos** (límite 10). A un ritmo natural de unas 130 palabras por minuto, la narración de abajo dura alrededor de 8 minutos y deja margen para las transiciones y la demo.
 
-| Tiempo | Sección | En pantalla | Qué decir (resumen) |
-|---|---|---|---|
-| 0:00–0:40 | Presentación | Diapositiva de portada | Nombre, maestría, curso, título del proyecto: "PeritIA: detección de daños en vehículos para siniestros de autos". |
-| 0:40–1:50 | Contexto y problema | Diapositiva con el flujo de reclamación | Trabajo como científico de datos en una aseguradora. El perito revisa a mano las fotos de cada reclamo. Objetivo: un primer filtro automático (triage) con 3 salidas: con daño, sin daño y enviar a perito. Área: reconocimiento de objetos / clasificación. |
-| 1:50–3:00 | Dataset | `muestra_imagenes.png`, `distribucion_clases.png`, `resoluciones.png` | Kaggle, 2.300 imágenes, 2 clases balanceadas. EDA: el 67 % tiene menos de 256 px. Limpieza con MD5 + dHash: 24 descartadas, **8 eran fuga entre entrenamiento y prueba**. Test independiente de 459 imágenes que nunca se suben a Azure. |
-| 3:00–4:30 | Entrenamiento | Portal de Custom Vision: proyecto, etiquetas, imágenes, pestaña Performance de las 3 iteraciones. Terminal con `02_custom_vision.py estado` | Transfer learning, dominio General [A2]. Tres iteraciones: base con 300 imágenes, todos los datos, entrenamiento avanzado de 1 h. Todo automatizado con la API REST para que sea reproducible. Mostrar precision/recall del portal. |
-| 4:30–5:15 | Despliegue | Diagrama `resultados/figuras_app/arquitectura.png`; portal: *Publish* y *Prediction URL* (con la clave tapada) | Dos capas en la nube: el modelo publicado como endpoint REST en Azure y la app web en Streamlit Community Cloud, conectada al repositorio de GitHub. Las claves van en los *secrets* de la plataforma, nunca en el código. Explicar la petición (imagen en bytes) y la respuesta JSON con probabilidades. |
-| 5:15–7:15 | **Demo de la app** | La app publicada, abierta desde su enlace público en el navegador | (1) Subir las 6 fotos de la lista de abajo: dos con daño claro, dos sin daño y dos dudosas. Mostrar el semáforo, la barra de probabilidad y el CSV. (2) Mover el umbral y el margen, y mostrar cómo cambian las decisiones. (3) Pestaña "Evaluar dataset": subir `data/demo_eval.zip` y mostrar las métricas, la matriz y la ROC calculadas en vivo. |
-| 7:15–8:50 | Resultados y análisis | `tabla_metricas.md`, `roc.png`, `matriz_confusion.png`, `barrido_umbral.png`, `errores.png` | Comparar las 3 iteraciones (AUC con IC 95 %). Leer la matriz de confusión: qué significan los FP y FN en seguros. Umbral de Youden vs. 0,5. Mostrar 2 o 3 errores y explicar por qué fallan. Explicar por qué no basta con las métricas del portal. |
-| 8:50–9:30 | Limitaciones y conclusiones | Diapositiva de cierre | Sesgo de encuadre y de dominio; Ley 1581 (datos personales); el modelo apoya y no reemplaza al perito. Trabajo futuro: detección del área dañada y severidad. Conclusión principal con el número de AUC/F1. |
+## 1. Preparación antes de grabar
 
-## Frases clave para justificar (por si el profesor pregunta)
+### Configuración de OBS Studio (gratuito: https://obsproject.com)
 
-- **Por qué Custom Vision:**
-  - El servicio aplica *transfer learning* sobre redes preentrenadas, lo que permite buen desempeño con ~1.800 imágenes.
-  - El despliegue como API es inmediato.
-  - Ya existía la infraestructura de la Actividad 4.
-- **Por qué un test propio:**
-  - El portal solo da precision, recall y AP sobre una partición interna aleatoria. No da F1, ROC ni AUC.
-  - El conjunto de prueba es independiente y está libre de duplicados.
-- **AUC:** es la probabilidad de que una foto con daño elegida al azar reciba mayor puntaje que una sin daño. No depende del umbral.
-- **Youden:** es el punto de la ROC que maximiza sensibilidad + especificidad − 1, y equilibra los dos tipos de error.
-- **Zona de duda:** el costo de un error es asimétrico y regulado. Por eso los casos inciertos van a un humano y no hay rechazo automático.
-- **dHash:** es un hash perceptual. Imágenes casi iguales (reescaladas o recomprimidas) dan hashes con pocos bits distintos. Se usó una distancia de Hamming ≤ 4 sobre 64 bits.
+1. **Escena "Pantalla":** fuente *Captura de pantalla* (monitor completo) o *Captura de ventana* del navegador.
+2. **Cámara (opcional):** fuente *Dispositivo de captura de video*, pequeña, en la esquina inferior derecha. Mostrar la cara da cercanía.
+3. **Audio:** en *Configuración → Audio* deje solo el micrófono y agréguele el filtro *Supresión de ruido (RNNoise)*.
+4. **Salida:** *Configuración → Salida → Grabación*: formato **MP4**, calidad "Alta". *Video*: 1920×1080 a 30 FPS.
+5. Haga una grabación de prueba de 20 segundos y escúchela con audífonos.
 
-## Cifras finales para decir en el video
+Alternativa más simple: **Clipchamp** (incluido en Windows 11) o la grabadora de pantalla de **PowerPoint**.
 
-Modelo final: `iter3-advanced` (entrenamiento avanzado de 1 hora). Conjunto de prueba independiente de 459 imágenes (229 con daño, 230 sin daño) que nunca se subió a Custom Vision.
+### Pestañas abiertas y en orden (navegador a pantalla completa, zoom 110–125 %)
 
-| Modelo | Accuracy | Precision | Recall | F1 | ROC AUC (IC 95 %) |
-|---|---|---|---|---|---|
-| iter1-baseline (300 imágenes) | 0,948 | 0,960 | 0,934 | 0,947 | 0,989 (0,981–0,995) |
-| iter2-full (1.817 imágenes) | 0,954 | 0,964 | 0,943 | 0,954 | 0,990 (0,983–0,996) |
-| **iter3-advanced** | **0,954** | 0,960 | 0,948 | **0,954** | **0,991 (0,985–0,997)** |
+1. El informe PDF abierto en la portada.
+2. Portal de Azure → grupo de recursos `ComputerVisionImages` (sin abrir *Claves y punto de conexión*).
+3. Custom Vision → proyecto `DanosVehiculares`, pestaña *Training Images*. **Entre desde el portal de Azure:** recurso `AnimalIdentificationJGR` → *Información general* → enlace *Portal de Custom Vision*. Si entra directo a customvision.ai, el inicio de sesión con la cuenta de La Salle falla.
+4. La misma página en la pestaña *Performance*, con *Iteration 3* seleccionada.
+5. La app: https://peritia-evaluador-danios.streamlit.app/ (ábrala unos minutos antes para que "despierte").
+6. El repositorio: https://github.com/guzmandb/PeritIA
 
-Frases clave:
+Tenga en una carpeta las 6 fotos de la demo y `demo_eval.zip` (sección 4).
 
-- "Con solo 300 fotos ya llegamos a AUC 0,989. Eso muestra el poder del *transfer learning*: el modelo base ya sabe qué es una abolladura."
-- "Más datos y el entrenamiento avanzado mejoran poco. McNemar da p = 0,71 y p = 1,0: las diferencias no son significativas. Lo digo con honestidad."
-- "Elegí la iteración 3 porque tiene el mejor AUC y el mejor AP, y porque con su umbral óptimo deja pasar menos daños."
-- "Con umbral 0,5 la matriz es VP 217, FP 9, VN 221, FN 12. Con el umbral de Youden, 0,42, el recall sube a 0,969: solo 7 de 229 daños se escapan, a cambio de 2 falsos positivos más."
-- "En seguros, un falso positivo cuesta tiempo de un perito. Un falso negativo puede objetar mal un reclamo. Por eso priorizo el recall, y la app nunca objeta sola."
-- "AUC 0,991: si tomo al azar una foto con daño y otra sin daño, el modelo pone más alta la de daño el 99,1 % de las veces."
-- "La zona de duda manda a revisión solo el 2 % de las fotos. Pero 12 de los 21 errores son con mucha seguridad, así que además propongo auditar por muestreo."
-- "El portal decía precision 0,92. Mi evaluación independiente da 0,96. El portal usa una partición pequeña y aleatoria; por eso hice mi propia evaluación con 459 imágenes y sin fuga."
-- "Latencia del endpoint: mediana 561 ms por foto, en el nivel gratuito."
+### Seguridad
 
-Errores para mostrar en `errores.png`:
+- No muestre el archivo `.env`, la página *Claves y punto de conexión* ni el diálogo *Prediction URL* de Custom Vision, porque muestran la clave.
+- Active el modo *No molestar* de Windows y cierre pestañas personales.
 
-- **Falsos positivos (P = 0,99):** auto mojado con baldes y agua en el piso; auto en un patio con grúas; mecánico agachado junto a un Mercedes. El modelo aprendió el **contexto de taller** como pista de daño.
-- **Falsos negativos (P = 0,00–0,17):** Honda rojo con el frente destrozado visto de lejos; auto negro con daño de bajo contraste; auto contra un muro de ladrillos. Es el **sesgo de encuadre**: en el dataset, el daño casi siempre es un primer plano.
+### Consejos para hablar
 
-Demo de la app (las mismas fotos de la figura 5 del informe, en `data/test/`):
+- Hable como si le explicara el proyecto a un colega de la aseguradora: con calma y sin leer palabra por palabra. El guion es un apoyo, no un teleprompter.
+- Grabe **por bloques** (una toma por sección) y luego únalas. Si se equivoca, repite solo ese bloque. OBS permite pausar la grabación.
+- Cada vez que mencione una cifra, señálela con el mouse.
+- **Sí mencione dónde trabaja y por qué eligió el tema:** es el "contexto y relación con el trabajo" que pide la rúbrica y le da sentido al proyecto. No es necesario decir el nombre de la empresa.
+- **Sí muestre Azure:** es la evidencia de que el modelo se entrenó y se desplegó en la nube. Bastan 1 a 2 minutos.
+
+## 2. Estructura y tiempos
+
+| Tiempo | Bloque | En pantalla |
+|---|---|---|
+| 0:00–0:40 | Presentación | Portada del informe |
+| 0:40–1:50 | Contexto y motivación | Sección 1 del informe |
+| 1:50–3:00 | Dataset y preparación | Figuras 1 a 3 y tabla de duplicados |
+| 3:00–4:30 | Entrenamiento en Azure | Portal de Azure y customvision.ai |
+| 4:30–5:15 | Despliegue | Figura de arquitectura y repositorio |
+| 5:15–7:15 | Demo de la app | App publicada |
+| 7:15–8:40 | Resultados y análisis | Curva ROC, matriz, barrido de umbral y errores |
+| 8:40–9:20 | Limitaciones y cierre | Conclusiones del informe |
+
+## 3. Narración
+
+### 0:00 — Presentación (portada del informe)
+
+> Hola, profesor. Mi nombre es Jherson Guzmán, estudiante de la Maestría en Inteligencia Artificial de la Universidad de La Salle. En este video presento mi proyecto final de Visión por Computador: **PeritIA**, un sistema que clasifica fotografías de vehículos como *con daño* o *sin daño* para apoyar la gestión de siniestros de autos. Voy a mostrar el contexto, el dataset, el entrenamiento y el despliegue en Azure, la aplicación web funcionando y, al final, el análisis de las métricas.
+
+### 0:40 — Contexto y motivación (sección 1)
+
+> Trabajo como científico de datos en una compañía de seguros en Colombia. En el ramo de autos, cuando un cliente reporta un siniestro, envía fotos del vehículo por la app, por correo o por WhatsApp, y un perito las revisa una por una para confirmar si hay daño visible antes de continuar el trámite.
+>
+> Esa primera revisión es manual, repetitiva y crece con el volumen de reclamaciones. Además, una parte de las fotos no muestra ningún daño: son fotos incompletas, de otro carro o reclamos inconsistentes. Por eso elegí este tema: es un problema real de mi sector en el que la visión por computador aporta valor directo.
+>
+> La propuesta es un primer filtro con tres salidas: si el modelo está seguro de que hay daño, el caso avanza a taller; si está seguro de que no hay daño, se marca para validar la coherencia del reclamo, que puede ser una señal de fraude; y si tiene dudas, va a un perito. El área de aplicación es el reconocimiento de objetos mediante clasificación de imágenes con *transfer learning*.
+
+### 1:50 — Dataset (figuras 1, 2 y 3)
+
+> Usé el dataset público *Car Damage Detection* de Kaggle: 2.300 fotos reales en dos clases balanceadas. En el análisis exploratorio encontré dos cosas importantes. Primero, las imágenes son pequeñas: el 67 % tiene el lado menor por debajo de 256 píxeles. Segundo, hay un posible sesgo de encuadre: las fotos con daño suelen ser primeros planos en talleres, y las sin daño, fotos comerciales del carro completo.
+>
+> Antes de entrenar limpié los datos. Además de normalizar las imágenes, busqué duplicados con un hash MD5 y con un *hash* perceptual, dHash, que detecta fotos casi iguales aunque estén reescaladas. Encontré 24 duplicados y, lo más importante, **8 fotos que estaban a la vez en entrenamiento y en prueba**. Si no se eliminan, el modelo se evalúa con fotos que ya vio y las métricas salen infladas. Al final quedaron 1.817 imágenes para entrenar y 459 para una prueba independiente que **nunca se subió a Azure**.
+
+### 3:00 — Entrenamiento en Azure (portal y customvision.ai)
+
+*(Mostrar el grupo de recursos en el portal de Azure.)*
+
+> Para el modelo usé Azure Custom Vision. Reutilicé los recursos que había creado en la Actividad 4: el grupo de recursos `ComputerVisionImages`, con un recurso de entrenamiento y uno de predicción, ambos en el nivel gratuito. Lo importante no es el nombre del recurso, sino que sobre él creé un proyecto nuevo, exclusivo para este problema.
+
+*(Cambiar a customvision.ai, pestaña Training Images.)*
+
+> Este es el proyecto `DanosVehiculares`, de clasificación multiclase con el dominio *General A2*, y estas son las dos etiquetas: `danado` y `sin_dano`. Todo el flujo —crear el proyecto, subir las imágenes, entrenar y publicar— lo automaticé con la API REST de Custom Vision en Python, para que sea reproducible.
+
+*(Pestaña Performance; recorrer las tres iteraciones.)*
+
+> Entrené tres iteraciones para responder tres preguntas. La primera, con solo 300 imágenes, para ver qué tan lejos se llega con pocos datos. La segunda, con todas las imágenes. Y la tercera, con el entrenamiento avanzado de una hora, que hace una búsqueda de arquitectura más profunda. Aquí se ven la precision y el recall que reporta el portal. Pero el portal solo los calcula sobre una partición interna pequeña y no da F1, curva ROC ni AUC. Por eso hice mi propia evaluación, que muestro más adelante.
+
+### 4:30 — Despliegue (figura de arquitectura y repositorio)
+
+> El despliegue tiene dos capas en la nube. La primera es el modelo: cada iteración quedó publicada como un endpoint REST en Azure; la aplicación le envía la imagen y recibe un JSON con la probabilidad de cada clase. La segunda es la aplicación web, desarrollada en Streamlit y publicada en Streamlit Community Cloud desde este repositorio de GitHub. Las claves del endpoint no están en el código: se configuran como *secrets* en la plataforma.
+
+### 5:15 — Demo de la app (app publicada)
+
+> Esta es la aplicación, abierta desde su enlace público. En la barra lateral se ve que está conectada al endpoint de Azure con la iteración final, junto con el umbral de decisión y el margen de la zona de duda.
+
+*(Subir las 6 fotos.)*
+
+> Voy a cargar seis fotos del conjunto de prueba. Las dos primeras tienen daño evidente y el modelo las clasifica con 99,8 % de probabilidad. Estas dos no tienen daño y el modelo da prácticamente cero. Y estas dos son interesantes: este carro tiene daño, pero se ve de lejos y en un patio, y esta foto trasera sin daño tiene reflejos. El modelo da 32 % y 50 %, y como están cerca del umbral, la aplicación no decide sola: las envía a un perito.
+
+*(Llevar el margen de la zona de duda a 0.)*
+
+> Si quito la zona de duda, el modelo decide todo y se equivoca en esas dos fotos: una sale como falso negativo y la otra como falso positivo. Eso muestra por qué la zona de duda es útil.
+
+*(Pestaña Evaluar un dataset etiquetado; subir `demo_eval.zip` y pulsar Evaluar.)*
+
+> La segunda pestaña permite evaluar el modelo con un conjunto etiquetado. Subo un zip con 30 fotos en dos carpetas y la aplicación calcula en vivo la exactitud, la precision, el recall, el F1, la matriz de confusión y la curva ROC. Esto sirve para que el área de negocio valide el modelo con sus propias fotos antes de usarlo.
+
+### 7:15 — Resultados y análisis (secciones 4 y 5 del informe)
+
+*(Curva ROC.)*
+
+> Ahora los resultados sobre las 459 imágenes de prueba. El modelo final, la iteración avanzada, logró una exactitud de 95,4 %, un F1 de 0,954 y un **AUC de 0,991**, con un intervalo de confianza entre 0,985 y 0,997. Un AUC de 0,991 significa que, si tomo al azar una foto con daño y una sin daño, el modelo le da mayor probabilidad de daño a la correcta el 99,1 % de las veces.
+>
+> Un hallazgo interesante: con solo 300 fotos ya se llegaba a 0,989. Más datos y el entrenamiento avanzado mejoran poco, y la prueba de McNemar confirma que la diferencia no es estadísticamente significativa.
+
+*(Matriz de confusión y barrido de umbral.)*
+
+> En seguros los dos errores no cuestan lo mismo. Un falso positivo solo hace que un perito revise un caso. Un falso negativo puede llevar a objetar una reclamación con daño real. Por eso ajusté el umbral con la curva ROC: con el índice de Youden, en 0,42, el recall sube a 96,9 % y solo se escapan 7 de 229 daños, a cambio de dos falsos positivos más.
+
+*(Galería de errores.)*
+
+> Y aquí están los errores. Los falsos positivos son carros mojados, con charcos o en talleres: el modelo aprendió el contexto como pista. Los falsos negativos son daños vistos de lejos o en carros oscuros: es el sesgo de encuadre que había detectado en el análisis exploratorio.
+
+### 8:40 — Limitaciones y cierre (conclusiones)
+
+> Como limitaciones, las fotos vienen de internet y no de reclamaciones colombianas, así que antes de un piloto habría que validar con fotos reales. Además, las imágenes pueden tener placas o rostros, por lo que aplica la Ley 1581 de protección de datos. Por eso el sistema apoya al perito, no lo reemplaza, y nunca objeta un reclamo de forma automática.
+>
+> En conclusión, PeritIA clasifica daños con un AUC de 0,991, está desplegado en la nube y tiene una aplicación web lista para usar. Como trabajo futuro propongo detectar la zona dañada y estimar su severidad. Muchas gracias por su atención.
+
+## 4. Material para la demo
+
+Fotos (en `data/test/` de la carpeta local del proyecto):
 
 - `danado/danado_test_0060.jpg` → 99,8 % de daño (daño detectado)
 - `danado/danado_test_0100.jpg` → 99,8 % (daño detectado)
-- `danado/danado_test_0202.jpg` → 32,4 % (zona de duda: el daño se ve de lejos y el fondo es un patio)
+- `danado/danado_test_0202.jpg` → 32,4 % (zona de duda: daño visto de lejos, fondo de patio)
 - `sin_dano/sin_dano_test_0060.jpg` → 0,0 % (sin daño visible)
 - `sin_dano/sin_dano_test_0100.jpg` → 0,0 % (sin daño visible)
 - `sin_dano/sin_dano_test_0080.jpg` → 50,3 % (zona de duda: vista trasera con reflejos)
 
-Luego subir `data/demo_eval.zip` en la pestaña "Evaluar un dataset etiquetado" (30 imágenes: exactitud 0,967, AUC 1,000).
+Dataset de evaluación: `data/demo_eval.zip` (30 imágenes; exactitud 0,967, AUC 1,000).
+
+## 5. Preguntas que pueden surgir
+
+- **¿Por qué Custom Vision?** Aplica *transfer learning* sobre redes preentrenadas, da buen desempeño con pocos miles de imágenes, el despliegue como API es inmediato y ya existía la infraestructura de la Actividad 4.
+- **¿Por qué una evaluación propia?** El portal solo da precision, recall y AP sobre una partición interna aleatoria; no da F1, ROC ni AUC. El conjunto de prueba propio es independiente y está libre de duplicados.
+- **¿Qué es el índice de Youden?** Es el punto de la curva ROC que maximiza sensibilidad + especificidad − 1; equilibra los dos tipos de error.
+- **¿Qué es dHash?** Un *hash* perceptual: imágenes casi iguales producen *hashes* con pocos bits distintos. Se usó una distancia de Hamming de hasta 4 sobre 64 bits.
+- **¿Por qué el portal da 0,92 y la prueba 0,96?** La partición interna del portal es pequeña y probablemente contiene casi duplicados difíciles que se eliminaron del conjunto de prueba.
+
+## 6. Lista de verificación final
+
+- [ ] Video de máximo 10 minutos, en 1080p, con audio claro.
+- [ ] No aparecen claves, `.env` ni la página de claves de Azure.
+- [ ] Subido a YouTube como **No listado**; el enlace funciona en una ventana de incógnito.
+- [ ] Enlace pegado en la portada del informe y PDF regenerado.
+- [ ] PDF entregado antes de las 23:59 del 22 de noviembre.
