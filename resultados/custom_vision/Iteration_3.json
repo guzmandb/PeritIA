@@ -1,0 +1,47 @@
+{
+  "iteracion": {
+    "id": "f49e5e6a-cca9-4480-aaf6-ff666b8caae2",
+    "name": "Iteration 3",
+    "status": "Completed",
+    "created": "2026-11-22T06:04:25.823Z",
+    "lastModified": "2026-11-22T12:10:56.958Z",
+    "trainedAt": "2026-11-22T12:10:56.953Z",
+    "projectId": "344fe39a-9f11-4a53-b835-6acdedd2fae5",
+    "exportable": false,
+    "exportableTo": [],
+    "domainId": "2e37d7fb-3a54-486a-b4d6-cfc369af0018",
+    "classificationType": "Multiclass",
+    "trainingType": "Advanced",
+    "reservedBudgetInHours": 1,
+    "trainingTimeInMinutes": 60,
+    "publishName": null,
+    "originalPublishResourceId": null
+  },
+  "performance_threshold_0.5": {
+    "perTagPerformance": [
+      {
+        "id": "20f75c25-3ac8-48e9-aa9e-30de1431c5c3",
+        "name": "danado",
+        "precision": 0.90425533,
+        "precisionStdDeviation": 0.0,
+        "recall": 0.9444444,
+        "recallStdDeviation": 0.0,
+        "averagePrecision": 0.97124285
+      },
+      {
+        "id": "62ffb6bd-278a-40bf-9b08-65ad14932a98",
+        "name": "sin_dano",
+        "precision": 0.9431818,
+        "precisionStdDeviation": 0.0,
+        "recall": 0.90217394,
+        "recallStdDeviation": 0.0,
+        "averagePrecision": 0.975169
+      }
+    ],
+    "precision": 0.9230769,
+    "precisionStdDeviation": 0.0,
+    "recall": 0.9230769,
+    "recallStdDeviation": 0.0,
+    "averagePrecision": 0.97224617
+  }
+}

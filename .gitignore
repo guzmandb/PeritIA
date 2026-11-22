@@ -1,0 +1,14 @@
+# secretos
+.env
+.streamlit/secrets.toml
+
+# datos pesados (se regeneran con 01_preparar_dataset.py)
+raw/
+data/train/
+data/test/
+
+# temporales
+__pycache__/
+*.pyc
+resultados/eval3.log
+docs/*.html

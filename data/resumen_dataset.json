@@ -1,0 +1,23 @@
+{
+  "fuente": "Kaggle — anujms/car-damage-detection (data1a)",
+  "imagenes_originales": 2300,
+  "grupos_duplicados": 23,
+  "descartadas": {
+    "duplicado_train": 15,
+    "fuga_train_test": 8,
+    "duplicado_test": 1
+  },
+  "final": {
+    "train/danado": 898,
+    "train/sin_dano": 919,
+    "test/danado": 229,
+    "test/sin_dano": 230
+  },
+  "total_final": 2276,
+  "lado_menor_px": {
+    "min": 74,
+    "mediana": 194,
+    "max": 3264
+  },
+  "lado_menor_menor_256": 1543
+}
