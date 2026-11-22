@@ -10,8 +10,8 @@
 <p>Jherson Guzmán</p>
 <p>Noviembre de 2026</p>
 <br>
-<p>Aplicación web: [ENLACE APP]</p>
-<p>Repositorio del código: [ENLACE REPOSITORIO]</p>
+<p>Aplicación web: https://peritia-evaluador-danios.streamlit.app/</p>
+<p>Repositorio del código: https://github.com/guzmandb/PeritIA</p>
 <p>Video de sustentación: [ENLACE YOUTUBE]</p>
 
 </div>

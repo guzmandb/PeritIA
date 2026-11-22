@@ -59,6 +59,28 @@ def set_pdf_metadata(pdf_path: Path):
     tmp.replace(pdf_path)
 
 
+def set_docx_metadata(docx_path: Path):
+    """Escribe autor y título en docProps/core.xml del .docx."""
+    import re
+    import zipfile
+    from xml.sax.saxutils import escape
+
+    tmp = docx_path.with_suffix(".tmp.docx")
+    with zipfile.ZipFile(docx_path) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "docProps/core.xml":
+                xml = data.decode("utf-8")
+                for tag, val in (("dc:creator", AUTHOR), ("cp:lastModifiedBy", AUTHOR), ("dc:title", TITLE)):
+                    if f"<{tag}" in xml:
+                        xml = re.sub(rf"<{tag}>.*?</{tag}>|<{tag}/>", f"<{tag}>{escape(val)}</{tag}>", xml, flags=re.S)
+                    else:
+                        xml = xml.replace("</cp:coreProperties>", f"<{tag}>{escape(val)}</{tag}></cp:coreProperties>")
+                data = xml.encode("utf-8")
+            zout.writestr(item, data)
+    tmp.replace(docx_path)
+
+
 def main():
     md_text = SRC.read_text(encoding="utf-8")
     # Python-Markdown exige sangría de 4 espacios para listas anidadas: normaliza 2-3 espacios -> 4
@@ -91,11 +113,10 @@ def main():
         # incrusta las imágenes en el .docx en vez de dejarlas enlazadas
         "foreach ($s in $d.InlineShapes) { if ($s.LinkFormat) { $s.LinkFormat.SavePictureWithDocument = $true; "
         "$s.LinkFormat.BreakLink() } }; "
-        f"$d.BuiltInDocumentProperties('Author').Value = '{AUTHOR}'; "
-        f"$d.BuiltInDocumentProperties('Title').Value = '{TITLE}'; "
         f"$d.SaveAs2('{docx_path}', 16); $d.Close(); $w.Quit()"
     )
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True, timeout=180)
+    set_docx_metadata(docx_path)
     print(f"DOCX  -> {docx_path}")
 
 

@@ -1,5 +1,7 @@
 # PeritIA — Detección de daños en vehículos para siniestros de autos
 
+**App en línea:** https://peritia-evaluador-danios.streamlit.app/
+
 Proyecto final, Visión por Computador (Maestría en IA, Universidad de La Salle). Actividad 6.
 
 **Problema:** en una aseguradora de autos, cada reclamación trae fotos del vehículo. PeritIA clasifica
