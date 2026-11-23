@@ -2,6 +2,8 @@
 
 **App en línea:** https://peritia-evaluador-danios.streamlit.app/
 
+**Video de sustentación:** https://youtu.be/Q6f0-3j1pEY
+
 Proyecto final, Visión por Computador (Maestría en IA, Universidad de La Salle). Actividad 6.
 
 **Problema:** en una aseguradora de autos, cada reclamación trae fotos del vehículo. PeritIA clasifica

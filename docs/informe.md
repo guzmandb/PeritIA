@@ -4,7 +4,7 @@ En este trabajo se desarrolló PeritIA, un sistema de visión por computador que
 
 Se compararon tres iteraciones: una línea base con 300 imágenes, una con todo el conjunto de entrenamiento y una con entrenamiento avanzado. Todas se evaluaron sobre un **conjunto de prueba independiente de 459 imágenes** que nunca se cargó en el servicio. Con el umbral por defecto de 0,5, el modelo final (`iter3-advanced`) obtuvo una exactitud de 0,954, precision de 0,960, recall de 0,948, F1 de 0,954 y un **área bajo la curva ROC de 0,991** (IC 95 %: 0,985–0,997). A partir de la curva ROC se definió además un umbral operativo de 0,42 que eleva el recall a 0,969, y una "zona de duda" que remite a un perito los casos en los que el modelo no tiene certeza suficiente.
 
-**Enlaces del proyecto.** Aplicación web: https://peritia-evaluador-danios.streamlit.app/ · Repositorio del código: https://github.com/guzmandb/PeritIA · Video de sustentación: [ENLACE YOUTUBE]
+**Enlaces del proyecto.** Aplicación web: https://peritia-evaluador-danios.streamlit.app/ · Repositorio del código: https://github.com/guzmandb/PeritIA · Video de sustentación: https://youtu.be/Q6f0-3j1pEY
 
 ## 1. Contexto y área de aplicación
 
