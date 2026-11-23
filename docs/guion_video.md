@@ -91,15 +91,23 @@ Tenga en una carpeta las 6 fotos de la demo y `demo_eval.zip` (sección 4).
 
 ### 5:15 — Demo de la app (app publicada)
 
-> Esta es la aplicación, abierta desde su enlace público. En la barra lateral se ve que está conectada al endpoint de Azure con la iteración final, junto con el umbral de decisión y el margen de la zona de duda.
+> Esta es la aplicación, abierta desde su enlace público, conectada al endpoint de Azure con la iteración final.
 
-*(Subir las 6 fotos.)*
+*(Señalar los dos controles de la barra lateral.)*
 
-> Voy a cargar seis fotos del conjunto de prueba. Las dos primeras tienen daño evidente y el modelo las clasifica con 99,8 % de probabilidad. Estas dos no tienen daño y el modelo da prácticamente cero. Y estas dos son interesantes: este carro tiene daño, pero se ve de lejos y en un patio, y esta foto trasera sin daño tiene reflejos. El modelo da 32 % y 50 %, y como están cerca del umbral, la aplicación no decide sola: las envía a un perito.
+> El modelo devuelve una probabilidad de daño entre 0 y 1. El **umbral** decide: por encima es *con daño*, por debajo *sin daño*. Uso 0,42 en vez de 0,5 porque sale de la curva ROC con el índice de Youden: deja escapar 7 daños en vez de 12, a cambio de solo 2 falsas alarmas más. En seguros conviene, porque un daño no detectado cuesta más que una revisión extra.
+>
+> El **margen** de ±0,10 crea una zona de duda entre 0,32 y 0,52: esas fotos no se deciden solas, van a un perito. Es un semáforo: rojo daño, verde sin daño, amarillo revisión humana.
 
-*(Llevar el margen de la zona de duda a 0.)*
+*(Subir las 6 fotos de `data/demo_video`.)*
 
-> Si quito la zona de duda, el modelo decide todo y se equivoca en esas dos fotos: una sale como falso negativo y la otra como falso positivo. Eso muestra por qué la zona de duda es útil.
+> Estas dos tienen daño: 99,8 %. Estas dos no: casi 0 %. Y estas dos quedan en amarillo: un carro dañado visto de lejos, con 32 %, y uno sano con reflejos, con 50 %. Van a un perito.
+
+*(Llevar el margen a 0.)*
+
+> Sin zona de duda, el modelo decide todo con el corte en 0,42 y falla en las dos: el dañado sale *sin daño*, un falso negativo, y el sano sale *con daño*, un falso positivo. En la prueba, la zona de duda solo manda a revisión el 2 % de las fotos y en el resto se acierta el 96,4 %.
+
+*(Volver el margen a 0,10.)*
 
 *(Pestaña Evaluar un dataset etiquetado; subir `demo_eval.zip` y pulsar Evaluar.)*
 
