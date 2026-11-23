@@ -1,49 +1,148 @@
-"""Paso 4 — Genera el informe final en HTML, PDF (Edge headless) y DOCX (Microsoft Word).
+"""Paso 4 — Genera el informe final en PDF (Typst) y DOCX (Pandoc).
 
-Entrada: docs/informe.md (Markdown con tablas; las imágenes usan rutas relativas a la raíz del proyecto).
-Salida:  docs/Informe_Actividad6_PeritIA.html / .pdf / .docx
+Entrada: docs/informe.md (Markdown; las imágenes usan rutas relativas a la raíz del proyecto y cada
+         figura va seguida de un <p class="caption">Figura N. ...</p>).
+Salida:  docs/Informe_Actividad6_PeritIA.pdf / .docx
+
+El PDF reproduce el formato de los informes de la maestría: portada con el logo de la Universidad
+de La Salle dentro de un marco, fuente Computer Modern, A4 con márgenes de 2 cm y tablas con filetes.
+Requiere Quarto (incluye Pandoc y Typst).
 
 Uso:
     python 04_generar_informe.py
 """
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
-import markdown
-
 from src import config
 
-DOCS = config.ROOT / "docs"
+ROOT = config.ROOT
+DOCS = ROOT / "docs"
 SRC = DOCS / "informe.md"
 NAME = "Informe_Actividad6_PeritIA"
-AUTHOR = "Jherson Guzmán"
-TITLE = "PeritIA — Clasificación de daños en vehículos (Actividad 6)"
-EDGE = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+QUARTO = "quarto"
 
-CSS = """
-@page { size: A4; margin: 2.2cm 2cm; }
-body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10.5pt; line-height: 1.45;
-       color: #1d1d1f; max-width: 820px; margin: 0 auto; }
-h1 { font-size: 20pt; color: #0b3d91; margin-bottom: .2em; }
-h2 { font-size: 14pt; color: #0b3d91; border-bottom: 2px solid #d0dbf0; padding-bottom: .15em;
-     margin-top: 1.4em; page-break-after: avoid; }
-h3 { font-size: 11.5pt; color: #23395d; margin-top: 1.1em; page-break-after: avoid; }
-table { border-collapse: collapse; margin: .6em 0 1em; font-size: 9pt; width: 100%; page-break-inside: avoid; }
-th, td { border: 1px solid #c8cfdb; padding: 4px 6px; text-align: left; vertical-align: top; }
-th { background: #eef3fb; }
-code { font-family: Consolas, monospace; font-size: 8.8pt; background: #f3f4f6; padding: 0 3px; }
-pre { background: #f3f4f6; padding: 8px; font-size: 8.3pt; white-space: pre-wrap; page-break-inside: avoid; }
-img.wide { max-width: 100%; max-height: none; }
-img.screen { max-width: 92%; max-height: 17cm; border: 1px solid #c8cfdb; }
-img { max-width: 72%; max-height: 8.5cm; display: block; margin: .5em auto .2em; page-break-inside: avoid; }
-p.caption, em.caption { display: block; text-align: center; font-size: 9pt; color: #555; margin-bottom: 1em; }
-blockquote { border-left: 4px solid #d0dbf0; margin: .6em 0; padding: .2em .8em; color: #444; }
-.portada { text-align: center; padding-top: 5cm; page-break-after: always; }
-.portada h1 { font-size: 24pt; }
-.portada p { font-size: 12pt; margin: .35em 0; }
+AUTHOR = "Jherson Guzman Ramirez"
+PROJECT = "PeritIA: clasificación automática de daños en vehículos"
+TITLE = f"{PROJECT} — Proyecto Final"
+SUBTITLE = "Proyecto Final – Implementemos un modelo de clasificación"
+COURSE = "Visión por Computador G1"
+TEACHER = "Carlos Alejandro Espejo Villarraga"
+DATE = "22 de noviembre de 2026"
+
+WIDTHS = {"wide": "100%", "screen": "80%", None: "66%"}
+
+PREAMBLE = r"""
+#set document(title: "__TITLE__", author: "__AUTHOR__")
+#set text(font: "New Computer Modern", size: 10pt, lang: "es")
+#set page(paper: "a4", margin: 2cm, numbering: "1", number-align: center)
+#set par(justify: true, leading: 0.58em, spacing: 0.9em)
+#set heading(numbering: none)
+#show heading: set block(above: 1.4em, below: 0.8em)
+#show heading.where(level: 1): set text(size: 14.3pt, weight: "bold")
+#show heading.where(level: 2): set text(size: 12pt, weight: "bold")
+#show heading.where(level: 3): set text(size: 10.5pt, weight: "bold")
+#show link: set text(fill: rgb("#1f3fbf"))
+#show raw: set text(font: "DejaVu Sans Mono", size: 7.6pt)
+#show raw.where(block: true): block.with(fill: luma(246), inset: 7pt, radius: 2pt, width: 100%)
+#set table(stroke: (x, y) => if y == 0 { (top: 0.8pt, bottom: 0.45pt) }, inset: (x: 5pt, y: 3.2pt))
+#show table: t => block(stroke: (bottom: 0.8pt))[#t]
+#show table: set text(size: 8.6pt)
+#show table.cell.where(y: 0): set text(weight: "bold")
+#show figure: set block(breakable: false, above: 1.1em, below: 1.1em)
+#show figure.where(kind: image): set figure(supplement: [Figura], placement: auto)
+#show figure.caption: set text(size: 9.3pt)
+#set figure.caption(separator: [: ])
+#set list(indent: 0.6em)
+
+#page(numbering: none, margin: 2cm,
+  background: place(center + horizon, rect(width: 100% - 2cm, height: 100% - 2cm, stroke: 0.7pt)))[
+  #set align(center)
+  #set par(justify: false)
+  #v(0.6cm)
+  #image("plantilla/logo_lasalle.png", width: 8cm)
+  #v(0.25cm)
+  #text(size: 17.2pt)[Universidad de La Salle] \
+  #v(0.05cm)
+  #text(size: 17.2pt)[Maestría en Inteligencia Artificial]
+  #v(0.9cm)
+  #line(length: 85%, stroke: 0.9pt)
+  #v(0.35cm)
+  #block(width: 80%)[#text(size: 24.8pt, weight: "bold")[__PROJECT__]]
+  #v(0.35cm)
+  #line(length: 85%, stroke: 0.9pt)
+  #v(1.8cm)
+  #text(size: 17.2pt, weight: "bold")[__SUBTITLE__]
+  #v(1.6cm)
+  #text(size: 17.2pt, style: "italic")[Autor:]
+  #v(0.15cm)
+  #text(size: 14.3pt)[__AUTHOR__]
+  #v(2.6cm)
+  #text(size: 17.2pt)[__COURSE__] \
+  #v(0.05cm)
+  #text(size: 17.2pt)[Docente: __TEACHER__]
+  #v(1.3cm)
+  #text(size: 12pt)[__DATE__]
+]
+#counter(page).update(1)
+
 """
+
+
+def html_inline_to_md(s: str) -> str:
+    s = re.sub(r"<code>(.*?)</code>", r"`\1`", s)
+    s = re.sub(r"<(?:i|em)>(.*?)</(?:i|em)>", r"*\1*", s)
+    s = re.sub(r"<(?:b|strong)>(.*?)</(?:b|strong)>", r"**\1**", s)
+    return s
+
+
+def fixed_figures(md: str, window: int = 1500) -> set[int]:
+    """Índices de las figuras que van justo después de un título de sección (##): esas no flotan,
+    para que no suban por encima del título."""
+    fixed = set()
+    figs = [m.start() for m in re.finditer(r"^!\[", md, flags=re.M)]
+    h2 = [m.start() for m in re.finditer(r"^## ", md, flags=re.M)]
+    for i, pos in enumerate(figs):
+        prev_h2 = max((h for h in h2 if h < pos), default=-10**9)
+        prev_fig = figs[i - 1] if i else -10**9
+        if prev_h2 > prev_fig and pos - prev_h2 < window:
+            fixed.add(i)
+    return fixed
+
+
+def to_pandoc_md(md: str, img_prefix: str) -> str:
+    """Convierte las figuras (imagen + <p class="caption">) en figuras nativas de Pandoc."""
+    pat = re.compile(r'!\[[^\]]*\]\(([^)]+)\)(?:\{:\s*\.(\w+)\})?\s*\n<p class="caption">Figura \d+\.\s*(.*?)</p>')
+
+    def rep(m):
+        path, cls, cap = m.group(1), m.group(2), html_inline_to_md(m.group(3))
+        return f"![{cap}]({img_prefix}{path}){{width={WIDTHS.get(cls, WIDTHS[None])}}}"
+
+    return pat.sub(rep, md)
+
+
+def pin_figures(typ: str, fixed: set[int]) -> str:
+    """Quita la flotación a las figuras indicadas (en orden de aparición)."""
+    parts = typ.split("#figure(image(")
+    out = parts[0]
+    for i, part in enumerate(parts[1:]):
+        out += ("#figure(placement: none, image(" if i in fixed else "#figure(image(") + part
+    return out
+
+
+def pandoc(args: list[str], text: str) -> str:
+    r = subprocess.run([QUARTO, "pandoc", *args], input=text.encode("utf-8"), capture_output=True, check=True)
+    return r.stdout.decode("utf-8").replace("\r\n", "\n")
+
+
+def tidy_tables(typ: str) -> str:
+    """Tablas al estilo LaTeX: columnas automáticas, texto alineado a la izquierda y sin filete duplicado."""
+    typ = re.sub(r"\n\s*align: \([^)]*\),", "", typ)
+    typ = re.sub(r"\n\s*table\.hline\(\),", "", typ)
+    return typ
 
 
 def set_pdf_metadata(pdf_path: Path):
@@ -61,7 +160,6 @@ def set_pdf_metadata(pdf_path: Path):
 
 def set_docx_metadata(docx_path: Path):
     """Escribe autor y título en docProps/core.xml del .docx."""
-    import re
     import zipfile
     from xml.sax.saxutils import escape
 
@@ -82,40 +180,31 @@ def set_docx_metadata(docx_path: Path):
 
 
 def main():
-    md_text = SRC.read_text(encoding="utf-8")
-    # Python-Markdown exige sangría de 4 espacios para listas anidadas: normaliza 2-3 espacios -> 4
-    fixed = []
-    for line in md_text.splitlines():
-        k = len(line) - len(line.lstrip(" "))
-        if 0 < k and line.strip():
-            line = " " * (-(-k // 3) * 4) + line.lstrip(" ")
-        fixed.append(line)
-    md_text = "\n".join(fixed)
-    body =markdown.markdown(md_text, extensions=["tables", "fenced_code", "md_in_html", "attr_list"])
-    # rutas de imágenes relativas a docs/
-    body = body.replace('src="resultados/', 'src="../resultados/')
-    html = (f"<!doctype html><html lang='es'><head><meta charset='utf-8'><title>PeritIA — Informe Actividad 6</title>"
-            f"<style>{CSS}</style></head><body>{body}</body></html>")
-    html_path = DOCS / f"{NAME}.html"
-    html_path.write_text(html, encoding="utf-8")
-    print(f"HTML  -> {html_path}")
+    md = SRC.read_text(encoding="utf-8")
+    common = ["-f", "markdown", "--shift-heading-level-by=-1", "--wrap=none", "--columns=10000"]
 
+    # ---- PDF (Typst) ----
+    body = tidy_tables(pandoc([*common, "-t", "typst"], to_pandoc_md(md, "../")))
+    body = pin_figures(body, fixed_figures(md))
+    pre = PREAMBLE
+    for k, v in {"TITLE": TITLE, "AUTHOR": AUTHOR, "PROJECT": PROJECT, "SUBTITLE": SUBTITLE,
+                 "COURSE": COURSE, "TEACHER": TEACHER, "DATE": DATE}.items():
+        pre = pre.replace(f"__{k}__", v)
+    typ = DOCS / f"{NAME}.typ"
+    typ.write_text(pre + body, encoding="utf-8", newline="\n")
     pdf_path = DOCS / f"{NAME}.pdf"
-    subprocess.run([str(EDGE), "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
-                    f"--print-to-pdf={pdf_path}", html_path.as_uri()], check=True, timeout=120)
+    subprocess.run([QUARTO, "typst", "compile", str(typ), str(pdf_path), "--root", str(ROOT)], check=True)
+    typ.unlink()
     set_pdf_metadata(pdf_path)
     print(f"PDF   -> {pdf_path}")
 
+    # ---- DOCX (Pandoc) ----
+    cover = (f"::: {{custom-style=\"Title\"}}\n{PROJECT}\n:::\n\n"
+             f"Universidad de La Salle — Maestría en Inteligencia Artificial\n\n{SUBTITLE}\n\n"
+             f"Autor: {AUTHOR}\n\n{COURSE} — Docente: {TEACHER}\n\n{DATE}\n\n")
     docx_path = DOCS / f"{NAME}.docx"
-    ps = (
-        "$w = New-Object -ComObject Word.Application; $w.Visible = $false; "
-        f"$d = $w.Documents.Open('{html_path}'); "
-        # incrusta las imágenes en el .docx en vez de dejarlas enlazadas
-        "foreach ($s in $d.InlineShapes) { if ($s.LinkFormat) { $s.LinkFormat.SavePictureWithDocument = $true; "
-        "$s.LinkFormat.BreakLink() } }; "
-        f"$d.SaveAs2('{docx_path}', 16); $d.Close(); $w.Quit()"
-    )
-    subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True, timeout=180)
+    subprocess.run([QUARTO, "pandoc", *common, "-o", str(docx_path), "--resource-path", str(ROOT)],
+                   input=(cover + to_pandoc_md(md, "")).encode("utf-8"), check=True)
     set_docx_metadata(docx_path)
     print(f"DOCX  -> {docx_path}")
 

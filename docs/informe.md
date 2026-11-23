@@ -1,26 +1,10 @@
-<div class="portada" markdown="1">
-
-# PeritIA
-
-<p><strong>Clasificación automática de daños en vehículos como apoyo a la gestión de siniestros de autos</strong></p>
-
-<p>Actividad 6 — Proyecto final de Visión por Computador</p>
-<p>Maestría en Inteligencia Artificial — Universidad de La Salle</p>
-<br>
-<p>Jherson Guzmán</p>
-<p>Noviembre de 2026</p>
-<br>
-<p>Aplicación web: https://peritia-evaluador-danios.streamlit.app/</p>
-<p>Repositorio del código: https://github.com/guzmandb/PeritIA</p>
-<p>Video de sustentación: [ENLACE YOUTUBE]</p>
-
-</div>
-
 ## Resumen
 
 En este trabajo se desarrolló PeritIA, un sistema de visión por computador que clasifica fotografías de vehículos en dos categorías, **con daño** y **sin daño**, con el fin de apoyar la primera revisión de las reclamaciones de un seguro de autos. El modelo se entrenó en **Azure Custom Vision** a partir de un conjunto de datos público de Kaggle que, después de un proceso de depuración, quedó con 2.276 imágenes. La iteración final se publicó como un **servicio REST en la nube** y se integró en una **aplicación web desarrollada en Streamlit**, desplegada en Streamlit Community Cloud, en la que un usuario puede cargar una o varias fotos, o un conjunto de imágenes etiquetadas, y obtener la decisión del modelo junto con sus métricas.
 
 Se compararon tres iteraciones: una línea base con 300 imágenes, una con todo el conjunto de entrenamiento y una con entrenamiento avanzado. Todas se evaluaron sobre un **conjunto de prueba independiente de 459 imágenes** que nunca se cargó en el servicio. Con el umbral por defecto de 0,5, el modelo final (`iter3-advanced`) obtuvo una exactitud de 0,954, precision de 0,960, recall de 0,948, F1 de 0,954 y un **área bajo la curva ROC de 0,991** (IC 95 %: 0,985–0,997). A partir de la curva ROC se definió además un umbral operativo de 0,42 que eleva el recall a 0,969, y una "zona de duda" que remite a un perito los casos en los que el modelo no tiene certeza suficiente.
+
+**Enlaces del proyecto.** Aplicación web: https://peritia-evaluador-danios.streamlit.app/ · Repositorio del código: https://github.com/guzmandb/PeritIA · Video de sustentación: [ENLACE YOUTUBE]
 
 ## 1. Contexto y área de aplicación
 
@@ -299,7 +283,7 @@ Finalmente, el sistema está listo como prototipo de apoyo al triage, pero no co
 
 - Anuj M. S. (s. f.). *Car Damage Detection* [Conjunto de datos]. Kaggle. https://www.kaggle.com/datasets/anujms/car-damage-detection
 - Congreso de Colombia. (2012). *Ley Estatutaria 1581 de 2012, por la cual se dictan disposiciones generales para la protección de datos personales.*
-- Espejo, A. (s. f.). *Aplicaciones y desafíos actuales en visión por computador* [Material de clase, Unidad 3]. Universidad de La Salle.
+- Espejo Villarraga, C. A. (s. f.). *Aplicaciones y desafíos actuales en visión por computador* [Material de clase, Unidad 3]. Universidad de La Salle.
 - Fawcett, T. (2006). An introduction to ROC analysis. *Pattern Recognition Letters, 27*(8), 861–874.
 - McNemar, Q. (1947). Note on the sampling error of the difference between correlated proportions or percentages. *Psychometrika, 12*(2), 153–157.
 - Microsoft. (2024). *What is Custom Vision?* Microsoft Learn. https://learn.microsoft.com/azure/ai-services/custom-vision-service/overview
